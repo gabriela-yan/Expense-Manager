@@ -19,10 +19,26 @@ class Budget {
         this.expenses = [];
     }
 
-    newExpense(expense){
+    newExpense(expense) {
         // console.log(expense); Test
         this.expenses = [...this.expenses, expense];
-        console.log(this.expenses);
+        // console.log(this.expenses); Test
+        this.calculateRemaining();
+        
+    }
+
+    calculateRemaining() {
+        // Iterate the array expenses and return a total
+        const spent = this.expenses.reduce( (total, expense) => total + expense.quantity, 0);
+        // console.log(spent); Test
+        this.remaining = this.budget - spent;
+        // console.log(this.remaining); Test
+    }
+
+    deleteExpense(id) {
+        this.expenses = this.expenses.filter( expense => expense.id !== id );
+        // console.log(this.expenses); Test
+        this.calculateRemaining();
     }
 }
 
@@ -62,7 +78,7 @@ class UI {
         },3000);
     }
 
-    addListedExpense(expenses) {
+    showExpenses(expenses) {
         // console.log(expenses); Test
         this.cleanHTML(); // Remove previous HTML
 
@@ -80,12 +96,15 @@ class UI {
             // console.log(newExpense); Test
 
             // Add the expense HTML
-            newExpense.innerHTML = `${expenseName} <span class="badge badge-primary badge-pill">${quantity}</span> `;
+            newExpense.innerHTML = `${expenseName} <span class="badge badge-primary badge-pill">$ ${quantity}</span> `;
             
             // Button for delete expense
             const btnDelete = document.createElement('button');
             btnDelete.classList.add('btn', 'btn-danger', 'borrar-gasto');
             btnDelete.textContent = 'Borrar';
+            btnDelete.onclick = () => {
+                deleteExpense(id);
+            }
 
             newExpense.appendChild(btnDelete);
 
@@ -97,6 +116,35 @@ class UI {
     cleanHTML() {
         while(listedExpense.firstChild){
             listedExpense.removeChild(listedExpense.firstChild);
+        }
+    }
+
+    updateRemaining(remaining) {
+        document.querySelector('#restante').textContent = remaining;
+    }
+
+    checkBudget(budgetObj){
+        const { budget, remaining } = budgetObj;
+
+        const remainingDiv = document.querySelector('.restante');
+
+        // Check 25%
+        if( (budget / 4) > remaining ) {
+            // console.log('Ya gastaste mas del 75%'); Test
+            remainingDiv.classList.remove('alert-success', 'alert-warning');
+            remainingDiv.classList.add('alert-danger');
+        } else if( (budget / 2) > remaining ) {
+            remainingDiv.classList.remove('alert-success');
+            remainingDiv.classList.add('alert-warning');
+        } else {
+            remainingDiv.classList.remove('alert-danger', 'alert-warning');
+            remainingDiv.classList.add('alert-success');
+        }
+
+        // If the total is 0 or less
+        if( remaining <= 0) {
+            ui.printAlert('El presupuesto se ha agotado', 'error');
+            form.querySelector('button[type="submit"]').disabled = true;
         }
     }
 }
@@ -151,11 +199,27 @@ function addExpense(e) {
     ui.printAlert('Gasto agregado correctamente');
 
     // Print expense
-    const { expenses } = budget;
-    ui.addListedExpense(expenses);
+    const { expenses, remaining } = budget;
+    ui.showExpenses(expenses);
 
+    ui.updateRemaining(remaining);
+
+    ui.checkBudget(budget);
     // Form reset
     form.reset();
 
 }
 
+function deleteExpense(id) {
+    // console.log(id); Test
+    // Remove from object
+    budget.deleteExpense(id);
+
+    // Remove the expenses of HTML
+    const { expenses, remaining } = budget;
+    ui.showExpenses(expenses);
+
+    ui.updateRemaining(remaining);
+
+    ui.checkBudget(budget);
+}
